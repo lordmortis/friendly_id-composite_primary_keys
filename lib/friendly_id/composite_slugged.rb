@@ -1,17 +1,15 @@
 module FriendlyId
-  module CompositeScoped
+  module CompositeSlugged
 
     # FriendlyId::Config.use will invoke this method when present, to allow
     # loading dependent modules prior to overriding them when necessary.
     def self.setup(model_class)
-      model_class.friendly_id_config.use :scoped
+      model_class.friendly_id_config.use :slugged
     end
 
     def scope_for_slug_generator
-      relation = self.class.unscoped.friendly
-      friendly_id_config.scope_columns.each do |column|
-        relation = relation.where(column => send(column))
-      end
+      scope = self.class.base_class.unscoped
+      scope = scope.friendly unless scope.respond_to?(:exists_by_friendly_id?)
       primary_key_name = self.class.primary_key
       # if it's an array, we've got a composite key, so we need a different scope
       if primary_key_name.is_a? Array
@@ -26,7 +24,7 @@ module FriendlyId
       else
         whereclause = self.class.base_class.arel_table[primary_key_name].not_eq(send(primary_key_name))
       end
-      relation.where(whereclause)
+      scope.where(whereclause)
     end
     private :scope_for_slug_generator
 
